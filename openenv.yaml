@@ -1,0 +1,25 @@
+version: "0.1"
+name: "meditriage-openenv"
+description: "A high-fidelity medical triage simulation for emergency resource allocation."
+author: "YourName"
+
+tasks:
+  - id: "emergency-detection"
+    name: "Easy: Emergency Identification"
+    difficulty: "easy"
+    description: "Identify if a patient condition is life-threatening (Priority 1) or common (Priority 3)."
+    max_steps: 1
+
+  - id: "clinical-triage"
+    name: "Medium: Clinical Priority Mapping"
+    difficulty: "medium"
+    description: "Map a diverse set of symptoms to the correct hospital priority level (1-3)."
+    max_steps: 1
+
+  - id: "resource-constrained-triage"
+    name: "Hard: Resource-Aware Allocation"
+    difficulty: "hard"
+    description: "Allocate ICU beds and ambulances under conditions of extreme scarcity and high vitals."
+    max_steps: 1
+
+entrypoint: "meditriage_env.app:app"

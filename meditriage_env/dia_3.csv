@@ -1,0 +1,111 @@
+_id,diagnose
+5,ACE inhibitor induced coughblood pressure medication side effectDrug-induced coughDrug reaction: ACE inhibitor
+14,Acute angle closure glaucomaincreased inner eye pressure
+25,Alcoholism
+26,Allergic reaction
+71,Autoimmune disease
+82,Basilar artery migraineheadache
+85,Behcet s diseasesmall blood vessel inflammation disorder
+98,Blepharitiseyelid swelling
+107,Brain tumorcancer of the brain
+136,Cavernous sinus thrombosishead vein blood clot
+144,Cerebral contusionbruise of brain
+146,Cerebral vascular accidentstroke
+162,Cholangitisinflammation of the bile ducts
+163,Cholecystitisinflammation of the gallbladder
+164,Choledocholithiasisstone in bile duct
+165,Cholelithiasisgallstones
+172,Cirrhosisliver failure and scarring
+186,Conjunctivitispink eye
+192,Corneal abrasionscrape on eye
+193,Corneal foreign bodyobject in the eye
+213,Diabeteshigh blood sugar
+214,Diabetes mellitus type 2elevated blood sugar
+300,Foreign body in the eye
+319,Glaucomaelevated eye pressure
+330,Head trauma
+347,Hepatitisliver inflammation
+358,Hordeolumstye of eye
+370,Hyphematraumatic blood in eye
+405,Keratitisinflammation of cornea
+424,Leukemiablood cell cancer
+447,Malariamosquito transmitted illness
+454,Maxillary sinus carcinomasinus cancer
+468,Methyl alcohol intoxicationmethanol
+469,Migrainetype of headache
+483,Multiple sclerosisMS
+508,Nasopharyngeal carcinomatumor
+523,Ophthalmoplegiaeye muscle weakness
+524,Optic neuritisoptic nerve inflammation
+527,Orbital cellulitissoft tissue eye infection
+528,Orbital fracturebroken bone near the eye
+529,Orbital massgrowth near the eye
+545,Pancreatic cancertumor
+563,Periorbital cellulitisinfection around eye
+576,Pituitary tumor
+606,Primary sclerosing cholangitisbile duct disease
+638,Quaternary syphilislate stage syphilis
+641,Increased pressure in the skullraised intracranial pressure
+679,Sclerosing cholangitisprogressive bile duct disease
+704,Sinusitissinus infection
+728,"Steven Johnson syndromerare, serious skin disorder"
+743,Syphilistreponema pallidum
+748,Temporal arteritisinflamed scalp artery
+756,Third cranial nerve disorderdisorder of eye movement
+774,Toxoplasma infectionToxoplasmosisparasite infection
+775,"Transient ischemic attackTIA, reversible stroke"
+777,Trauma
+799,"Uveitisiritis, eye inflammation"
+814,Vertebral- basilar artery insufficiencyinadequate blood flow to the back of the brainvertebro-basilar insufficiency
+829,"WarfarinCoumadin, Jantoven overdose"
+848,Seizureabnormal brain electrical activity
+852,Lymphomalymph node cancer
+867,Carotid artery stenosisneck artery narrowing
+870,Hydrocephalusbrain fluid build-up
+873,Cerebral aneurysmbrain artery dilation
+874,Pseudotumor cerebriincreased pressure in the skull
+879,Allergic conjunctivitisallergic reaction in the eye
+895,Hemochromatosisexcess iron disorder
+903,Wilsons diseasecopper accumulation in tissues
+918,RubellaGerman measles
+926,Subconjunctival hemorrhageblood covering white part of the eye
+951,Q feverflu-like bacterial illness
+992,Graves' diseaseoverproduction of thyroid hormone
+1001,"Angioedemaswelling of skin, lips, eyes"
+1003,Detached retinaretinal detachment
+1004,Posterior vitreous detachmentcommon eye abnormality
+1022,Cataractsclouding of the eye lens
+1026,Hemolytic anemiared blood cell destruction disorder
+1027,Pterygiumgrowth on the eye
+1052,Amaurosis fugaxmomentary vision loss in one eye
+1081,Gilbert's diseaseliver abnormality
+1083,Newborn jaundicenewborn skin discoloration
+1102,Macular degenerationchronic eye disease
+1108,Diabetic retinopathydiabetic eye disease
+1134,Miller Fisher Syndromerare nerve disease
+1136,Complex migrainemigraine with neurologic changes
+1249,Scleritisinflammation of the eye
+1255,Focal seizurepartial seizure
+1267,Gallbladder cancer
+1283,Farsightednesshyperopia/hypermetropia
+1295,Gallbladder and bile duct cancerGallbladder cancerbile duct cancer
+1299,Graves eye diseaseGraves ophthalmopathy
+1303,"Hemorrhagic strokeCVA, cerebrovascular accident"
+1305,Hepatitis A
+1315,Lacunar stroke
+1349,Presbyopiaaging vision
+1353,Retinitis pigmentosa
+1355,Retinoblastomapediatric eye cancer
+1357,Retrobulbar Neuritis
+1363,Takayasu's arteritisGiant cell arteritis of the young
+1365,Tay-Sachs disease
+1367,Tear duct infectionDacryocystitis
+1395,Conversion disorder
+1397,Strabismuscrossed eyes
+1461,Turner syndromegonadal dysgenesis
+1473,Retinopathy
+1475,Corneal ulcer
+1479,Blocked tear ductdacryostenosis
+1483,Aphakia
+1511,Night blindnessnyctalopia
+sym,nan
