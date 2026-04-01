@@ -1,3 +1,13 @@
+---
+title: MediTriage OpenEnv
+emoji: 🏥
+colorFrom: blue
+colorTo: red
+sdk: docker
+pinned: false
+---
+
+
 # 🏥 MediTriage-Env — Medical Triage RL Environment
 
 > An open reinforcement learning environment for training AI agents to perform medical triage — built for the **Meta Open Environment Challenge (Scaler Hackathon 2025)**.
