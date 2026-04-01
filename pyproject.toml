@@ -1,0 +1,9 @@
+[project]
+name = "meditriage-openenv"
+version = "1.0.0"
+description = "Medical Triage RL Environment"
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.backends.legacy:build"
