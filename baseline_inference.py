@@ -1,10 +1,10 @@
 import requests
 import os
 from dotenv import load_dotenv
-from google import genai
+from groq import Groq
 
 load_dotenv()
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 BASE_URL = "http://127.0.0.1:8000"
 
@@ -16,7 +16,7 @@ def get_ai_explanation(patient, decision, result):
     allocation = decision["allocation"]
     condition = result["info"]["actual_condition"]
     reward = result["reward"]
-    
+
     prompt = (
         "You are a medical AI assistant. Explain this triage decision briefly:\n"
         "Patient symptoms: " + symptoms + "\n"
@@ -26,26 +26,32 @@ def get_ai_explanation(patient, decision, result):
         "Reward received: " + str(reward) + "\n"
         "Give a 2-3 sentence doctor-friendly explanation."
     )
-    response = client.models.generate_content(
-        model="gemini-2.0-flash-lite",
-        contents=prompt
+
+    response = client.chat.completions.create(
+        model='llama-3.3-70b-versatile',
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=150
     )
-    return response.text
+    return response.choices[0].message.content
 
 def run_triage_test():
-    print("MediTriage AI Environment - Baseline Test")
+    print("MediCore AI — Medical Triage Baseline Test")
     print("=" * 50)
 
     for difficulty in ["easy", "medium", "hard"]:
         print("\n[" + difficulty.upper() + "] Testing...")
-        
+
         reset_res = requests.post(BASE_URL + "/reset?difficulty=" + difficulty)
         patient = reset_res.json()
-        
+
         print("Patient: " + patient["patient_id"])
         print("Symptoms: " + ", ".join(patient["symptoms"][:3]))
+        print("Vitals: HR=" + str(patient["vitals"]["heart_rate"]) +
+              ", Temp=" + str(patient["vitals"]["temp"]))
 
-        priority = 1 if any(s in ["Chest Pain", "Shortness of breath"] for s in patient["symptoms"]) else 3
+        priority = 1 if any(s in ["Chest Pain", "Shortness Of Breath",
+                                   "Chest Pressure"]
+                           for s in patient["symptoms"]) else 3
         decision = {
             "priority_level": priority,
             "allocation": "icu" if priority == 1 else "waiting_room",
@@ -58,13 +64,14 @@ def run_triage_test():
         print("Decision: Priority " + str(priority))
         print("Reward: " + str(result["reward"]))
         print("Condition: " + str(result["info"]["actual_condition"]))
-        
+        print("Feedback: " + str(result["info"]["feedback"]))
+
         try:
             explanation = get_ai_explanation(patient, decision, result)
+            print("AI Explanation: " + explanation)
         except Exception as e:
-            explanation = "AI explanation unavailable - quota exceeded. Core environment working correctly."
-        
-        print("AI Explanation: " + explanation)
+            print("AI Explanation: Unavailable - " + str(e))
+
         print("-" * 50)
 
 if __name__ == "__main__":

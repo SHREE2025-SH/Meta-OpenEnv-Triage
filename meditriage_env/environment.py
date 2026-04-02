@@ -6,120 +6,82 @@ import os
 from typing import Tuple, Dict, List
 from .models import MedicalObservation, TriageAction, TriageState
 
+
 class MedicalDataHandler:
     def __init__(self):
         base_path = os.path.dirname(__file__)
-        
-        print("📂 Loading MediAssist data...")
-        
-        # Load diseases
-        self.diseases = pd.read_csv(os.path.join(base_path, "dia_3.csv"))
-        self.diseases['_id'] = pd.to_numeric(self.diseases['_id'], errors='coerce')
-        self.diseases = self.diseases.dropna(subset=['_id'])
-        self.diseases['_id'] = self.diseases['_id'].astype(int)
-        self.diseases.set_index('_id', inplace=True)
 
-        # Load symptoms
-        self.symptoms = pd.read_csv(os.path.join(base_path, "symptoms2.csv"))
-        sym_id_col = '_id' if '_id' in self.symptoms.columns else 'id'
-        self.symptoms[sym_id_col] = pd.to_numeric(self.symptoms[sym_id_col], errors='coerce')
-        self.symptoms = self.symptoms.dropna(subset=[sym_id_col])
-        self.symptoms[sym_id_col] = self.symptoms[sym_id_col].astype(int)
-        self.symptoms.set_index(sym_id_col, inplace=True)
+        print("📂 Loading MediCore AI dataset...")
 
-        # Load symptom-disease matrix
-        self.matrix = pd.read_csv(os.path.join(base_path, "sym_dis_matrix.csv"), index_col=0)
-        self.matrix.index = pd.to_numeric(self.matrix.index, errors='coerce')
-        self.matrix = self.matrix.loc[~self.matrix.index.isna()].copy()
-        self.matrix.index = self.matrix.index.astype(int)
-        self.matrix.columns = pd.to_numeric(pd.Index(self.matrix.columns), errors='coerce')
-        self.matrix = self.matrix.loc[:, ~pd.isna(self.matrix.columns)].copy()
-        self.matrix.columns = self.matrix.columns.astype(int)
+        new_dataset_path = os.path.join(base_path, "diseases_symptoms.csv")
+        old_dataset_path = os.path.join(base_path, "dia_3.csv")
 
-        print(f"✅ Loaded: {len(self.diseases)} diseases, {len(self.symptoms)} symptoms")
+        if os.path.exists(new_dataset_path):
+            self.df = pd.read_csv(new_dataset_path)
+            print(f"✅ Loaded new dataset: {self.df.shape[0]} rows, {self.df['diseases'].nunique()} diseases")
+            self.disease_col = 'diseases'
+            self.symptom_cols = [c for c in self.df.columns if c != 'diseases']
+            self.use_new_dataset = True
+        else:
+            self.df = pd.read_csv(old_dataset_path)
+            print(f"⚠️ Using old dataset: {len(self.df)} diseases")
+            self.use_new_dataset = False
 
-        # Critical disease keywords for triage
         self.critical_keywords = [
-            "heart", "stroke", "sepsis", "hypertension", "asthma",
-            "attack", "failure", "emergency", "critical", "severe",
-            "hemorrhage", "shock", "trauma", "poisoning", "overdose"
+            "heart", "stroke", "sepsis", "hypertension", "attack",
+            "failure", "emergency", "hemorrhage", "shock", "poisoning",
+            "overdose", "cancer", "tumor", "seizure", "coma",
+            "meningitis", "pneumonia", "embolism", "aneurysm"
         ]
 
-    def get_symptoms_for_disease(self, disease_id: int) -> List[str]:
-        """Get real symptoms for a disease from the matrix."""
-        if disease_id not in self.matrix.columns:
-            return ["Generalized weakness", "Fatigue"]
-        
-        # Get symptom IDs that are linked to this disease
-        sym_col = self.matrix[disease_id]
-        linked_sym_ids = sym_col[sym_col > 0].index.tolist()
-        
-        if not linked_sym_ids:
-            return ["Generalized weakness", "Fatigue"]
-        
-        # Get symptom names
-        sym_names = []
-        for sym_id in linked_sym_ids[:5]:  # Max 5 symptoms
-            if sym_id in self.symptoms.index:
-                name_col = 'name' if 'name' in self.symptoms.columns else self.symptoms.columns[0]
-                sym_names.append(str(self.symptoms.loc[sym_id, name_col]))
-        
-        return sym_names if sym_names else ["Generalized weakness", "Fatigue"]
+        if self.use_new_dataset:
+            self.diseases = self.df[self.disease_col].unique().tolist()
+            self.disease_symptom_map = self._build_disease_symptom_map()
+
+        print(f"✅ Total diseases available: {len(self.diseases) if self.use_new_dataset else 'N/A'}")
+
+    def _build_disease_symptom_map(self) -> Dict:
+        disease_map = {}
+        for disease in self.diseases:
+            disease_rows = self.df[self.df[self.disease_col] == disease]
+            symptom_scores = disease_rows[self.symptom_cols].mean()
+            top_symptoms = symptom_scores[symptom_scores > 0.3].index.tolist()
+            disease_map[disease] = top_symptoms if top_symptoms else self.symptom_cols[:3]
+        return disease_map
 
     def get_case(self, difficulty: str = "easy") -> Dict:
-        """Generate a patient case based on difficulty."""
-        
-        if difficulty == "easy":
-            # Easy: clearly critical OR clearly non-critical
-            use_critical = random.random() < 0.5
-            if use_critical:
-                # Find a critical disease
-                critical_diseases = self.diseases[
-                    self.diseases['diagnose'].str.lower().str.contains(
-                        '|'.join(self.critical_keywords), na=False
-                    )
-                ]
-                if len(critical_diseases) > 0:
-                    row = critical_diseases.sample(n=1).iloc[0]
-                    disease_id = critical_diseases.sample(n=1).index[0]
-                else:
-                    disease_id = self.diseases.sample(n=1).index[0]
-                    row = self.diseases.loc[disease_id]
-            else:
-                # Non-critical disease
-                non_critical = self.diseases[
-                    ~self.diseases['diagnose'].str.lower().str.contains(
-                        '|'.join(self.critical_keywords), na=False
-                    )
-                ]
-                if len(non_critical) > 0:
-                    disease_id = non_critical.sample(n=1).index[0]
-                    row = self.diseases.loc[disease_id]
-                else:
-                    disease_id = self.diseases.sample(n=1).index[0]
-                    row = self.diseases.loc[disease_id]
-        else:
-            # Medium/Hard: random disease
-            disease_id = self.diseases.sample(n=1).index[0]
-            row = self.diseases.loc[disease_id]
+        is_critical = random.random() < 0.4
 
-        disease_name = str(row['diagnose'])
-        is_critical = any(k in disease_name.lower() for k in self.critical_keywords)
-
-        # Get real symptoms
-        symptoms = self.get_symptoms_for_disease(disease_id)
-
-        # Generate vitals based on criticality
         if is_critical:
-            heart_rate = random.randint(110, 160)
-            temp = round(random.uniform(38.5, 40.5), 1)
-            bp_systolic = random.randint(160, 200) if random.random() < 0.5 else random.randint(70, 90)
+            critical_diseases = [d for d in self.diseases
+                                if any(k in d.lower() for k in self.critical_keywords)]
+            disease = random.choice(critical_diseases) if critical_diseases else random.choice(self.diseases)
         else:
-            heart_rate = random.randint(60, 100)
-            temp = round(random.uniform(36.5, 37.5), 1)
-            bp_systolic = random.randint(110, 130)
+            non_critical = [d for d in self.diseases
+                           if not any(k in d.lower() for k in self.critical_keywords)]
+            disease = random.choice(non_critical) if non_critical else random.choice(self.diseases)
 
-        # Hard difficulty: add resource scarcity
+        is_critical = any(k in disease.lower() for k in self.critical_keywords)
+
+        if self.use_new_dataset and disease in self.disease_symptom_map:
+            symptoms = self.disease_symptom_map[disease][:5]
+            symptoms = [s.replace('_', ' ').title() for s in symptoms]
+        else:
+            symptoms = ["Generalized weakness", "Fatigue"]
+
+        if not symptoms:
+            symptoms = ["Generalized weakness", "Fatigue"]
+
+        if is_critical:
+            heart_rate = float(random.randint(110, 160))
+            temp = round(random.uniform(38.5, 40.5), 1)
+            bp_systolic = float(random.randint(160, 200) if random.random() < 0.5
+                               else random.randint(70, 90))
+        else:
+            heart_rate = float(random.randint(60, 100))
+            temp = round(random.uniform(36.5, 37.5), 1)
+            bp_systolic = float(random.randint(110, 130))
+
         if difficulty == "hard":
             icu_beds = random.randint(0, 1)
             ambulances = random.randint(0, 1)
@@ -131,13 +93,12 @@ class MedicalDataHandler:
             ambulances = random.randint(1, 3)
 
         return {
-            "disease_id": disease_id,
-            "disease": disease_name,
+            "disease": disease,
             "symptoms": symptoms,
             "vitals": {
-                "heart_rate": float(heart_rate),
-                "temp": float(temp),
-                "bp_systolic": float(bp_systolic)
+                "heart_rate": heart_rate,
+                "temp": temp,
+                "bp_systolic": bp_systolic
             },
             "is_critical": is_critical,
             "difficulty": difficulty,
@@ -156,7 +117,6 @@ class MedicalTriageEnv:
         self.difficulty = "easy"
 
     def reset(self, difficulty: str = "easy") -> MedicalObservation:
-        """Start a new patient episode."""
         self.difficulty = difficulty
         self.current_case = self.data_handler.get_case(difficulty=difficulty)
         self.state = TriageState(
@@ -164,9 +124,7 @@ class MedicalTriageEnv:
             step_count=0,
             difficulty=difficulty
         )
-
         print(f"✨ New Case [{difficulty}]: {self.current_case['disease']}")
-        print(f"   Symptoms: {self.current_case['symptoms'][:3]}")
         print(f"   Critical: {self.current_case['is_critical']}")
 
         return MedicalObservation(
@@ -175,11 +133,10 @@ class MedicalTriageEnv:
             vitals=self.current_case['vitals'],
             hospital_resources=self.current_case['resources'],
             difficulty=difficulty,
-            message=f"New patient arrived. Assess and triage appropriately."
+            message="New patient arrived. Assess and triage appropriately."
         )
 
     def step(self, action: TriageAction) -> Tuple[None, float, bool, dict]:
-        """Process triage decision and return reward."""
         if self.current_case is None:
             raise ValueError("Call reset() before step()!")
 
@@ -189,7 +146,6 @@ class MedicalTriageEnv:
         resources = self.current_case['resources']
 
         reward = self._calculate_reward(action, is_critical, difficulty, resources)
-
         self.state.is_done = True
         self.state.last_reward = reward
 
@@ -202,80 +158,67 @@ class MedicalTriageEnv:
             "feedback": self._get_feedback(action, is_critical, reward)
         }
 
-    def _calculate_reward(
-        self, 
-        action: TriageAction, 
-        is_critical: bool, 
-        difficulty: str,
-        resources: dict
-    ) -> float:
-        """
-        Meaningful reward function with partial progress signals.
-        Not just binary — rewards partial correctness too.
-        """
+    def _calculate_reward(self, action, is_critical, difficulty, resources) -> float:
         reward = 0.0
 
         if difficulty == "easy":
-            # Easy: Binary — correct or not
             if is_critical and action.priority_level == 1:
-                reward = 1.0  # Correct emergency identification
+                reward = 1.0
             elif not is_critical and action.priority_level == 3:
-                reward = 1.0  # Correct non-emergency
+                reward = 1.0
             elif is_critical and action.priority_level == 2:
-                reward = 0.3  # Partially correct (urgent but not emergency)
+                reward = 0.3
             elif not is_critical and action.priority_level == 2:
-                reward = 0.5  # Slightly overcautious but ok
+                reward = 0.5
+            elif is_critical and action.priority_level == 3:
+                reward = -0.5
             else:
-                reward = 0.0  # Wrong
+                reward = 0.0
 
         elif difficulty == "medium":
-            # Medium: Reward based on how close priority is
-            correct_priority = 1 if is_critical else 3
-            diff = abs(action.priority_level - correct_priority)
+            correct = 1 if is_critical else 3
+            diff = abs(action.priority_level - correct)
             if diff == 0:
                 reward = 1.0
             elif diff == 1:
-                reward = 0.4  # One level off
+                reward = 0.4
             else:
-                reward = 0.0  # Completely wrong
+                reward = -0.3 if is_critical else 0.0
 
-            # Allocation bonus
             if is_critical and action.allocation in ["icu", "emergency"]:
                 reward = min(1.0, reward + 0.1)
             elif not is_critical and action.allocation in ["ward", "waiting_room"]:
                 reward = min(1.0, reward + 0.1)
 
         elif difficulty == "hard":
-            # Hard: Resource-aware scoring
-            correct_priority = 1 if is_critical else 3
-            diff = abs(action.priority_level - correct_priority)
+            correct = 1 if is_critical else 3
+            diff = abs(action.priority_level - correct)
 
             if diff == 0:
-                base_reward = 1.0
+                base = 1.0
             elif diff == 1:
-                base_reward = 0.4
+                base = 0.4
             else:
-                base_reward = 0.0
+                base = -0.5 if is_critical else 0.0
 
-            # Resource penalty — if ICU is full but you sent them there
             if action.allocation == "icu" and resources["icu_beds"] == 0:
-                base_reward *= 0.5  # Penalize impossible allocation
+                base *= 0.5
 
-            # Bonus for good reasoning (contains key words)
             reasoning_lower = action.reasoning.lower()
-            if any(word in reasoning_lower for word in ["critical", "emergency", "vital", "urgent"]):
-                base_reward = min(1.0, base_reward + 0.05)
+            if any(w in reasoning_lower for w in ["critical", "emergency", "vital", "urgent"]):
+                base = min(1.0, base + 0.05)
 
-            reward = base_reward
+            reward = base
 
-        return round(reward, 2)
+        return round(float(reward), 2)
 
-    def _get_feedback(self, action: TriageAction, is_critical: bool, reward: float) -> str:
-        """Human-readable feedback for the agent."""
+    def _get_feedback(self, action, is_critical, reward) -> str:
         if reward >= 0.9:
             return "✅ Excellent triage decision!"
         elif reward >= 0.5:
             return "⚠️ Partially correct — review priority assignment"
+        elif reward < 0:
+            return "🚨 CRITICAL ERROR — Patient needed immediate attention!"
         else:
             correct = "EMERGENCY (Priority 1)" if is_critical else "NON-URGENT (Priority 3)"
             return f"❌ Incorrect. Patient needed: {correct}"
