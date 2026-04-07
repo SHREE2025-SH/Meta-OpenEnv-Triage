@@ -11,21 +11,51 @@ class MedicalDataHandler:
     def __init__(self):
         base_path = os.path.dirname(__file__)
 
-        print("📂 Loading MediCore AI dataset...")
+        print("Loading MediCore AI dataset...")
 
         new_dataset_path = os.path.join(base_path, "diseases_symptoms.csv")
-        old_dataset_path = os.path.join(base_path, "dia_3.csv")
 
         if os.path.exists(new_dataset_path):
             self.df = pd.read_csv(new_dataset_path)
-            print(f"✅ Loaded new dataset: {self.df.shape[0]} rows, {self.df['diseases'].nunique()} diseases")
+            print(f"Loaded new dataset: {self.df.shape[0]} rows, {self.df['diseases'].nunique()} diseases")
             self.disease_col = 'diseases'
             self.symptom_cols = [c for c in self.df.columns if c != 'diseases']
             self.use_new_dataset = True
+            self.diseases = self.df[self.disease_col].unique().tolist()
+            self.disease_symptom_map = self._build_disease_symptom_map()
         else:
-            self.df = pd.read_csv(old_dataset_path)
-            print(f"⚠️ Using old dataset: {len(self.df)} diseases")
-            self.use_new_dataset = False
+            print("CSV not found, using built-in fallback dataset")
+            self.use_new_dataset = True
+            self.diseases = [
+                "Heart Attack", "Stroke", "Pneumonia", "Sepsis",
+                "Hypertension", "Diabetes", "Asthma", "Appendicitis",
+                "Migraine", "Gastroenteritis", "Anemia", "Bronchitis",
+                "Urinary Tract Infection", "Kidney Failure", "Seizure",
+                "Meningitis", "Pulmonary Embolism", "Aneurysm",
+                "Hemorrhagic Shock", "Cancer"
+            ]
+            self.disease_symptom_map = {
+                "Heart Attack": ["Chest Pain", "Shortness Of Breath", "Sweating", "Nausea", "Arm Pain"],
+                "Stroke": ["Sudden Headache", "Confusion", "Vision Loss", "Weakness", "Slurred Speech"],
+                "Pneumonia": ["Cough", "Fever", "Chest Pain", "Shortness Of Breath", "Fatigue"],
+                "Sepsis": ["High Fever", "Rapid Heart Rate", "Confusion", "Sweating", "Low Blood Pressure"],
+                "Hypertension": ["Headache", "Dizziness", "Blurred Vision", "Chest Pain", "Nosebleed"],
+                "Diabetes": ["Fatigue", "Frequent Urination", "Blurred Vision", "Thirst", "Weight Loss"],
+                "Asthma": ["Wheezing", "Shortness Of Breath", "Chest Tightness", "Cough", "Breathlessness"],
+                "Appendicitis": ["Abdominal Pain", "Nausea", "Fever", "Vomiting", "Loss Of Appetite"],
+                "Migraine": ["Severe Headache", "Nausea", "Light Sensitivity", "Vomiting", "Aura"],
+                "Gastroenteritis": ["Diarrhea", "Vomiting", "Abdominal Cramps", "Fever", "Nausea"],
+                "Anemia": ["Fatigue", "Pale Skin", "Dizziness", "Shortness Of Breath", "Weakness"],
+                "Bronchitis": ["Cough", "Mucus", "Fatigue", "Chest Discomfort", "Mild Fever"],
+                "Urinary Tract Infection": ["Burning Urination", "Frequent Urination", "Pelvic Pain", "Cloudy Urine", "Fever"],
+                "Kidney Failure": ["Swelling", "Fatigue", "Decreased Urination", "Confusion", "Nausea"],
+                "Seizure": ["Convulsions", "Loss Of Consciousness", "Confusion", "Muscle Stiffness", "Jerking"],
+                "Meningitis": ["Severe Headache", "Stiff Neck", "High Fever", "Light Sensitivity", "Confusion"],
+                "Pulmonary Embolism": ["Chest Pain", "Shortness Of Breath", "Rapid Heart Rate", "Coughing Blood", "Dizziness"],
+                "Aneurysm": ["Sudden Severe Headache", "Neck Pain", "Vision Changes", "Nausea", "Loss Of Consciousness"],
+                "Hemorrhagic Shock": ["Rapid Heart Rate", "Low Blood Pressure", "Pale Skin", "Confusion", "Cold Sweat"],
+                "Cancer": ["Unexplained Weight Loss", "Fatigue", "Pain", "Skin Changes", "Persistent Cough"]
+            }
 
         self.critical_keywords = [
             "heart", "stroke", "sepsis", "hypertension", "attack",
@@ -34,11 +64,7 @@ class MedicalDataHandler:
             "meningitis", "pneumonia", "embolism", "aneurysm"
         ]
 
-        if self.use_new_dataset:
-            self.diseases = self.df[self.disease_col].unique().tolist()
-            self.disease_symptom_map = self._build_disease_symptom_map()
-
-        print(f"✅ Total diseases available: {len(self.diseases) if self.use_new_dataset else 'N/A'}")
+        print(f"Total diseases available: {len(self.diseases)}")
 
     def _build_disease_symptom_map(self) -> Dict:
         disease_map = {}
@@ -63,14 +89,14 @@ class MedicalDataHandler:
 
         is_critical = any(k in disease.lower() for k in self.critical_keywords)
 
-        if self.use_new_dataset and disease in self.disease_symptom_map:
+        if disease in self.disease_symptom_map:
             symptoms = self.disease_symptom_map[disease][:5]
             symptoms = [s.replace('_', ' ').title() for s in symptoms]
         else:
-            symptoms = ["Generalized weakness", "Fatigue"]
+            symptoms = ["Generalized Weakness", "Fatigue"]
 
         if not symptoms:
-            symptoms = ["Generalized weakness", "Fatigue"]
+            symptoms = ["Generalized Weakness", "Fatigue"]
 
         if is_critical:
             heart_rate = float(random.randint(110, 160))
@@ -124,8 +150,8 @@ class MedicalTriageEnv:
             step_count=0,
             difficulty=difficulty
         )
-        print(f"✨ New Case [{difficulty}]: {self.current_case['disease']}")
-        print(f"   Critical: {self.current_case['is_critical']}")
+        print(f"New Case [{difficulty}]: {self.current_case['disease']}")
+        print(f"Critical: {self.current_case['is_critical']}")
 
         return MedicalObservation(
             patient_id=f"PAT-{random.randint(1000, 9999)}",
@@ -214,11 +240,11 @@ class MedicalTriageEnv:
 
     def _get_feedback(self, action, is_critical, reward) -> str:
         if reward >= 0.9:
-            return "✅ Excellent triage decision!"
+            return "Excellent triage decision!"
         elif reward >= 0.5:
-            return "⚠️ Partially correct — review priority assignment"
+            return "Partially correct - review priority assignment"
         elif reward < 0:
-            return "🚨 CRITICAL ERROR — Patient needed immediate attention!"
+            return "CRITICAL ERROR - Patient needed immediate attention!"
         else:
             correct = "EMERGENCY (Priority 1)" if is_critical else "NON-URGENT (Priority 3)"
-            return f"❌ Incorrect. Patient needed: {correct}"
+            return f"Incorrect. Patient needed: {correct}"
