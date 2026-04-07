@@ -1,9 +1,12 @@
 import requests
 import os
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 from groq import Groq
 
-load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 BASE_URL = "http://127.0.0.1:8000"
