@@ -5,11 +5,17 @@ try:
     load_dotenv()
 except ImportError:
     pass
-from groq import Groq
+from openai import OpenAI
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+MODEL_NAME = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
+HF_TOKEN = os.getenv("HF_TOKEN")
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
 
-BASE_URL = "http://127.0.0.1:8000"
+client = OpenAI(
+    base_url="https://api.groq.com/openai/v1",
+    api_key=os.getenv("GROQ_API_KEY", "your-groq-api-key")
+)
 
 def get_ai_explanation(patient, decision, result):
     symptoms = ", ".join(patient["symptoms"][:3])
@@ -31,26 +37,27 @@ def get_ai_explanation(patient, decision, result):
     )
 
     response = client.chat.completions.create(
-        model='llama-3.3-70b-versatile',
+        model=MODEL_NAME,
         messages=[{"role": "user", "content": prompt}],
         max_tokens=150
     )
     return response.choices[0].message.content
 
 def run_triage_test():
-    print("MediCore AI — Medical Triage Baseline Test")
+    print("START")
+    print("MediCore AI - Medical Triage Baseline Test")
     print("=" * 50)
 
     for difficulty in ["easy", "medium", "hard"]:
-        print("\n[" + difficulty.upper() + "] Testing...")
+        print("STEP difficulty=" + difficulty)
 
-        reset_res = requests.post(BASE_URL + "/reset?difficulty=" + difficulty)
+        reset_res = requests.post(API_BASE_URL + "/reset?difficulty=" + difficulty)
         patient = reset_res.json()
 
-        print("Patient: " + patient["patient_id"])
-        print("Symptoms: " + ", ".join(patient["symptoms"][:3]))
-        print("Vitals: HR=" + str(patient["vitals"]["heart_rate"]) +
-              ", Temp=" + str(patient["vitals"]["temp"]))
+        print("STEP patient_id=" + patient["patient_id"])
+        print("STEP symptoms=" + ", ".join(patient["symptoms"][:3]))
+        print("STEP vitals HR=" + str(patient["vitals"]["heart_rate"]) +
+              " Temp=" + str(patient["vitals"]["temp"]))
 
         priority = 1 if any(s in ["Chest Pain", "Shortness Of Breath",
                                    "Chest Pressure"]
@@ -61,21 +68,23 @@ def run_triage_test():
             "reasoning": "Baseline heuristic based on symptom severity."
         }
 
-        step_res = requests.post(BASE_URL + "/step", json=decision)
+        step_res = requests.post(API_BASE_URL + "/step", json=decision)
         result = step_res.json()
 
-        print("Decision: Priority " + str(priority))
-        print("Reward: " + str(result["reward"]))
-        print("Condition: " + str(result["info"]["actual_condition"]))
-        print("Feedback: " + str(result["info"]["feedback"]))
+        print("STEP decision priority=" + str(priority))
+        print("STEP reward=" + str(result["reward"]))
+        print("STEP condition=" + str(result["info"]["actual_condition"]))
+        print("STEP feedback=" + str(result["info"]["feedback"]))
 
         try:
             explanation = get_ai_explanation(patient, decision, result)
-            print("AI Explanation: " + explanation)
+            print("STEP ai_explanation=" + explanation)
         except Exception as e:
-            print("AI Explanation: Unavailable - " + str(e))
+            print("STEP ai_explanation=Unavailable - " + str(e))
 
         print("-" * 50)
+
+    print("END")
 
 if __name__ == "__main__":
     run_triage_test()
