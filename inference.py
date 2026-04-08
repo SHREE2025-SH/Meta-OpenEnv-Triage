@@ -14,8 +14,8 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
 
 client = OpenAI(
-    base_url=os.environ["API_BASE_URL"],
-    api_key=os.environ["API_KEY"]
+    base_url=os.environ.get("API_BASE_URL", "https://shree3010-meditriage-openenv.hf.space"),
+    api_key=os.environ.get("API_KEY", "dummy-key")
 )
 
 def get_ai_explanation(patient, decision, result):
@@ -82,6 +82,9 @@ def run_triage_test():
             steps += 1
 
             print(f"[STEP] step={steps} difficulty={difficulty} reward={reward} priority={priority}", flush=True)
+
+            explanation = get_ai_explanation(patient, decision, result)
+            print(f"[STEP] step={steps} explanation={explanation}", flush=True)
 
         except Exception as e:
             steps += 1
