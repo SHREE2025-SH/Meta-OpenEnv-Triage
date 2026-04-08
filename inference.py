@@ -18,13 +18,14 @@ client = OpenAI(
 )
 
 def get_ai_explanation(patient, decision, result):
-    symptoms = ", ".join(patient["symptoms"][:3])
-    hr = patient["vitals"]["heart_rate"]
-    temp = patient["vitals"]["temp"]
+    symptoms = ", ".join(patient.get("symptoms", [])[:3])
+    vitals = patient.get("vitals", {})
+    hr = vitals.get("heart_rate", "N/A")
+    temp = vitals.get("temp", "N/A")
     priority = decision["priority_level"]
     allocation = decision["allocation"]
-    condition = result["info"]["actual_condition"]
-    reward = result["reward"]
+    condition = result.get("info", {}).get("actual_condition", "N/A")
+    reward = result.get("reward", "N/A")
 
     prompt = (
         "You are a medical AI assistant. Explain this triage decision briefly:\n"
@@ -49,38 +50,46 @@ def run_triage_test():
     print("=" * 50)
 
     for difficulty in ["easy", "medium", "hard"]:
-        print("STEP difficulty=" + difficulty)
-
-        reset_res = requests.post(API_BASE_URL + "/reset?difficulty=" + difficulty)
-        patient = reset_res.json()
-
-        print("STEP patient_id=" + patient["patient_id"])
-        print("STEP symptoms=" + ", ".join(patient["symptoms"][:3]))
-        print("STEP vitals HR=" + str(patient["vitals"]["heart_rate"]) +
-              " Temp=" + str(patient["vitals"]["temp"]))
-
-        priority = 1 if any(s in ["Chest Pain", "Shortness Of Breath",
-                                   "Chest Pressure"]
-                           for s in patient["symptoms"]) else 3
-        decision = {
-            "priority_level": priority,
-            "allocation": "icu" if priority == 1 else "waiting_room",
-            "reasoning": "Baseline heuristic based on symptom severity."
-        }
-
-        step_res = requests.post(API_BASE_URL + "/step", json=decision)
-        result = step_res.json()
-
-        print("STEP decision priority=" + str(priority))
-        print("STEP reward=" + str(result["reward"]))
-        print("STEP condition=" + str(result["info"]["actual_condition"]))
-        print("STEP feedback=" + str(result["info"]["feedback"]))
-
         try:
-            explanation = get_ai_explanation(patient, decision, result)
-            print("STEP ai_explanation=" + explanation)
+            print("STEP difficulty=" + difficulty)
+
+            reset_res = requests.post(API_BASE_URL + "/reset?difficulty=" + difficulty)
+            patient = reset_res.json()
+
+            patient_id = patient.get("patient_id") or patient.get("id") or "unknown"
+            symptoms = patient.get("symptoms", [])
+            vitals = patient.get("vitals", {})
+
+            print("STEP patient_id=" + str(patient_id))
+            print("STEP symptoms=" + ", ".join(symptoms[:3]))
+            print("STEP vitals HR=" + str(vitals.get("heart_rate", "N/A")) +
+                  " Temp=" + str(vitals.get("temp", "N/A")))
+
+            priority = 1 if any(s in ["Chest Pain", "Shortness Of Breath",
+                                       "Chest Pressure"]
+                               for s in symptoms) else 3
+            decision = {
+                "priority_level": priority,
+                "allocation": "icu" if priority == 1 else "waiting_room",
+                "reasoning": "Baseline heuristic based on symptom severity."
+            }
+
+            step_res = requests.post(API_BASE_URL + "/step", json=decision)
+            result = step_res.json()
+
+            print("STEP decision priority=" + str(priority))
+            print("STEP reward=" + str(result.get("reward", "N/A")))
+            print("STEP condition=" + str(result.get("info", {}).get("actual_condition", "N/A")))
+            print("STEP feedback=" + str(result.get("info", {}).get("feedback", "N/A")))
+
+            try:
+                explanation = get_ai_explanation(patient, decision, result)
+                print("STEP ai_explanation=" + explanation)
+            except Exception as e:
+                print("STEP ai_explanation=Unavailable - " + str(e))
+
         except Exception as e:
-            print("STEP ai_explanation=Unavailable - " + str(e))
+            print("STEP error=" + str(e))
 
         print("-" * 50)
 
