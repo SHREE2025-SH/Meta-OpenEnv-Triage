@@ -78,6 +78,7 @@ def run_triage_test():
             )
             result = step_res.json()
             reward = result.get("reward", 0.0)
+            reward = max(0.01, min(0.99, float(reward)))
             total_reward += reward
             steps += 1
 
