@@ -14,8 +14,8 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
 
 client = OpenAI(
-    base_url="https://api.groq.com/openai/v1",
-    api_key=os.getenv("GROQ_API_KEY", "your-groq-api-key")
+    base_url=os.environ["API_BASE_URL"],
+    api_key=os.environ["API_KEY"]
 )
 
 def get_ai_explanation(patient, decision, result):
