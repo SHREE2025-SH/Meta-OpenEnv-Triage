@@ -1,5 +1,6 @@
 import requests
 import os
+import sys
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -45,25 +46,21 @@ def get_ai_explanation(patient, decision, result):
     return response.choices[0].message.content
 
 def run_triage_test():
-    print("START")
-    print("MediCore AI - Medical Triage Baseline Test")
-    print("=" * 50)
+    print("[START] task=MedicalTriage", flush=True)
+
+    total_reward = 0.0
+    steps = 0
 
     for difficulty in ["easy", "medium", "hard"]:
         try:
-            print("STEP difficulty=" + difficulty)
-
-            reset_res = requests.post(API_BASE_URL + "/reset?difficulty=" + difficulty)
+            reset_res = requests.post(
+                API_BASE_URL + "/reset?difficulty=" + difficulty,
+                timeout=30
+            )
             patient = reset_res.json()
 
-            patient_id = patient.get("patient_id") or patient.get("id") or "unknown"
             symptoms = patient.get("symptoms", [])
             vitals = patient.get("vitals", {})
-
-            print("STEP patient_id=" + str(patient_id))
-            print("STEP symptoms=" + ", ".join(symptoms[:3]))
-            print("STEP vitals HR=" + str(vitals.get("heart_rate", "N/A")) +
-                  " Temp=" + str(vitals.get("temp", "N/A")))
 
             priority = 1 if any(s in ["Chest Pain", "Shortness Of Breath",
                                        "Chest Pressure"]
@@ -74,26 +71,24 @@ def run_triage_test():
                 "reasoning": "Baseline heuristic based on symptom severity."
             }
 
-            step_res = requests.post(API_BASE_URL + "/step", json=decision)
+            step_res = requests.post(
+                API_BASE_URL + "/step",
+                json=decision,
+                timeout=30
+            )
             result = step_res.json()
+            reward = result.get("reward", 0.0)
+            total_reward += reward
+            steps += 1
 
-            print("STEP decision priority=" + str(priority))
-            print("STEP reward=" + str(result.get("reward", "N/A")))
-            print("STEP condition=" + str(result.get("info", {}).get("actual_condition", "N/A")))
-            print("STEP feedback=" + str(result.get("info", {}).get("feedback", "N/A")))
-
-            try:
-                explanation = get_ai_explanation(patient, decision, result)
-                print("STEP ai_explanation=" + explanation)
-            except Exception as e:
-                print("STEP ai_explanation=Unavailable - " + str(e))
+            print(f"[STEP] step={steps} difficulty={difficulty} reward={reward} priority={priority}", flush=True)
 
         except Exception as e:
-            print("STEP error=" + str(e))
+            steps += 1
+            print(f"[STEP] step={steps} difficulty={difficulty} reward=0.0 error={str(e)}", flush=True)
 
-        print("-" * 50)
-
-    print("END")
+    score = round(total_reward / steps, 4) if steps > 0 else 0.0
+    print(f"[END] task=MedicalTriage score={score} steps={steps}", flush=True)
 
 if __name__ == "__main__":
     run_triage_test()
